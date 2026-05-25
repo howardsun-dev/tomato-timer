@@ -1,37 +1,41 @@
-import { ChangeEventHandler } from 'react'
-
 interface InputFieldProps {
   label: string
   value: number
-  onChange: ChangeEventHandler<HTMLInputElement>
-  placeHolder?: string
+  max?: number
+  onValueChange: (value: number) => void
 }
 
 export default function InputField({
   label,
   value,
-  onChange,
-  placeHolder
+  max,
+  onValueChange
 }: InputFieldProps): JSX.Element {
-  const handleInputChange = (e): void => {
-    const inputValue: string = e.target.value
-    const regex: RegExp = /^\d+$/
-    if (regex.test(inputValue)) {
-      onChange(e)
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const inputValue = event.target.value
+
+    if (inputValue !== '' && !/^\d+$/.test(inputValue)) {
+      return
     }
+
+    const parsedValue = inputValue === '' ? 0 : Number.parseInt(inputValue, 10)
+    const safeValue = Number.isFinite(parsedValue) ? parsedValue : 0
+
+    onValueChange(max === undefined ? safeValue : Math.min(safeValue, max))
   }
+
   return (
-    <>
-      <div className="text-3xl">
-        <label className="text-stone-00">{label}</label>
-        <input
-          className="w-20 bg-transparent text-blue-400"
-          type="number"
-          value={value}
-          onChange={handleInputChange}
-          placeholder={placeHolder}
-        />
-      </div>
-    </>
+    <div className="text-3xl">
+      <label className="text-stone-200">{label}</label>
+      <input
+        className="w-20 bg-transparent text-blue-400"
+        inputMode="numeric"
+        min={0}
+        max={max}
+        type="number"
+        value={value}
+        onChange={handleInputChange}
+      />
+    </div>
   )
 }

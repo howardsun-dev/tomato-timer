@@ -15,19 +15,28 @@ function createWindow(): void {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
     }
   })
 
   const toggleOverlayHotKey = 'CommandOrControl+6'
   let isOverlayOn = false
 
-  globalShortcut.register(toggleOverlayHotKey, () => {
+  const registered = globalShortcut.register(toggleOverlayHotKey, () => {
     isOverlayOn = !isOverlayOn
     mainWindow.setIgnoreMouseEvents(isOverlayOn)
 
     mainWindow.webContents.send('overlay-mode', isOverlayOn)
-    console.log('overlay', isOverlayOn)
+  })
+
+  if (!registered) {
+    console.warn(`Failed to register global shortcut: ${toggleOverlayHotKey}`)
+  }
+
+  mainWindow.on('closed', () => {
+    globalShortcut.unregister(toggleOverlayHotKey)
   })
 
   mainWindow.on('ready-to-show', () => {
@@ -36,7 +45,16 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    try {
+      const targetUrl = new URL(details.url)
+
+      if (targetUrl.protocol === 'https:' || targetUrl.protocol === 'http:') {
+        void shell.openExternal(targetUrl.toString())
+      }
+    } catch (error) {
+      console.warn(`Blocked invalid external URL: ${details.url}`, error)
+    }
+
     return { action: 'deny' }
   })
 
@@ -54,7 +72,7 @@ function createWindow(): void {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('dev.howardsun.timer')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -100,6 +118,10 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })
 
 // In this file you can include the rest of your app"s specific main process

@@ -1,20 +1,14 @@
 import { useEffect, useState } from 'react'
 import TopBar from './components/TopBar'
 import Timer from './components/Timer'
-import Versions from './components/Versions'
 
 function App(): JSX.Element {
-  const [isOverlay, setIsOverlay] = useState<boolean>(false)
-  const [openVersion, setOpenVersion] = useState<boolean>(false)
+  const [isOverlay, setIsOverlay] = useState(false)
 
   useEffect(() => {
-    window.electron.ipcRenderer.on('overlay-mode', () => {
-      setIsOverlay((prevState) => !prevState)
+    return window.timerApi.onOverlayMode((isOverlayOn) => {
+      setIsOverlay(isOverlayOn)
     })
-
-    return () => {
-      window.electron.ipcRenderer.removeAllListeners('overlay-mode')
-    }
   }, [])
 
   return (
@@ -30,17 +24,6 @@ function App(): JSX.Element {
         }
       >
         <Timer isOverlay={isOverlay} />
-        <div className={!isOverlay ? 'visible' : 'invisible'}>
-          <button
-            className="text-yellow-200 m-2"
-            onClick={() => {
-              setOpenVersion(!openVersion)
-            }}
-          >
-            Versions
-          </button>
-          {!openVersion ? null : <Versions />}
-        </div>
       </div>
     </>
   )

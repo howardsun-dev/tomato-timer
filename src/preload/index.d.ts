@@ -1,8 +1,11 @@
-import { ElectronAPI } from '@electron-toolkit/preload'
+export interface TimerApi {
+  closeWindow: () => void
+  minimizeWindow: () => void
+  onOverlayMode: (callback: (isOverlayOn: boolean) => void) => () => void
+}
 
 declare global {
   interface Window {
-    electron: ElectronAPI
-    api: unknown
+    timerApi: TimerApi
   }
 }

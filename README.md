@@ -1,36 +1,51 @@
 # electron-timer-app
 
-An Electron application with React and TypeScript
+A compact Electron + React timer with an always-on-top transparent overlay.
 
-HotKey: Ctrl/Cmd + 6 for Toggle Overlay Mode
+Hotkey: `Ctrl/Cmd + 6` toggles overlay click-through mode.
 
-## Recommended IDE Setup
+## Features
 
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+- Countdown timer with hours, minutes, and seconds
+- Quick presets: 5m, 10m, 15m, 25m, 45m, 1h
+- Frameless transparent always-on-top window
+- Click-through overlay mode
+- Alarm sound when the timer completes
 
 ## Project Setup
 
 ### Install
 
+Requires Node.js 22.12+ and npm 10+.
+
 ```bash
-$ npm install
+npm install
 ```
 
 ### Development
 
 ```bash
-$ npm run dev
+npm run dev
 ```
 
-### Build
+### Quality checks
 
 ```bash
-# For windows
-$ npm run build:win
+npm test
+npm run lint:check
+npm run typecheck
+npm run build
+```
+
+### Build installers
+
+```bash
+# For Windows
+npm run build:win
 
 # For macOS
-$ npm run build:mac
+npm run build:mac
 
 # For Linux
-$ npm run build:linux
+npm run build:linux
 ```
