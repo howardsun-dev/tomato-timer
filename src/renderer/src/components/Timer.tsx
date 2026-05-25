@@ -200,7 +200,7 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
   return (
     <>
       {isEditing ? (
-        <div className="flex justify-center text-stone-200">
+        <div className="flex justify-center text-red-50">
           <div>
             <InputField
               label="Hours: "
@@ -220,7 +220,7 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
               onValueChange={(value) => updateDraftTime('seconds', value)}
             />
             <button
-              className="bg-blue-500 text-stone-200 px-20 py-1 rounded-xl text-xl mt-1 ml-1"
+              className="bg-red-600 bg-opacity-85 text-red-50 px-20 py-1 rounded-xl text-xl mt-1 ml-1 border border-red-200/40 shadow-sm shadow-red-950/40 hover:bg-red-500"
               title="save"
               aria-label="Save timer duration"
               onClick={saveDuration}
@@ -232,13 +232,15 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
       ) : (
         <div>
           <div className="flex justify-center">
-            <h1 className="text-green-500 text-6xl">{formatSeconds(remainingSeconds)}</h1>
+            <h1 className="text-red-100 text-6xl drop-shadow-[0_0_10px_rgba(248,113,113,0.65)]">
+              {formatSeconds(remainingSeconds)}
+            </h1>
           </div>
           <div className={!isOverlay ? 'mt-1 flex flex-wrap justify-center gap-1' : 'hidden'}>
             {DEFAULT_TIMER_PRESETS.map((preset) => (
               <button
                 key={preset.label}
-                className="rounded bg-black bg-opacity-20 px-2 py-1 text-xs text-stone-200 hover:text-blue-300"
+                className="rounded bg-red-800 bg-opacity-45 px-2 py-1 text-xs text-red-50 border border-red-300/25 hover:bg-red-600 hover:text-white"
                 title={preset.description}
                 aria-label={`Set ${preset.label} timer`}
                 onClick={() => setPreset(preset)}
@@ -249,17 +251,19 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
           </div>
           <div
             className={
-              !isOverlay ? 'my-2 rounded-lg bg-black bg-opacity-20 p-2 text-stone-200' : 'hidden'
+              !isOverlay
+                ? 'my-2 rounded-lg bg-red-900 bg-opacity-35 p-2 text-red-50 border border-red-400/20'
+                : 'hidden'
             }
           >
             <div className="mb-2 flex items-center justify-between gap-2 text-xs">
-              <span className="font-semibold text-blue-200">
+              <span className="font-semibold text-red-100">
                 {isPomodoroMode
                   ? `Pomodoro · ${getPomodoroSessionLabel(pomodoroSession, completedFocusSessions)}`
                   : 'Pomodoro'}
               </span>
               <button
-                className="rounded bg-blue-500 bg-opacity-70 px-2 py-1 text-stone-100 hover:bg-opacity-90"
+                className="rounded bg-red-600 bg-opacity-75 px-2 py-1 text-red-50 border border-red-200/30 hover:bg-opacity-95"
                 aria-label="Start Pomodoro mode"
                 onClick={startPomodoro}
               >
@@ -268,28 +272,28 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
             </div>
             <div className="flex flex-wrap justify-center gap-1 text-xs">
               <button
-                className="rounded bg-green-600 bg-opacity-60 px-2 py-1 hover:bg-opacity-90"
+                className="rounded bg-lime-700 bg-opacity-55 px-2 py-1 text-lime-50 border border-lime-200/25 hover:bg-opacity-85"
                 aria-label="Set Pomodoro focus session"
                 onClick={() => choosePomodoroSession('focus')}
               >
                 Focus
               </button>
               <button
-                className="rounded bg-yellow-600 bg-opacity-60 px-2 py-1 hover:bg-opacity-90"
+                className="rounded bg-amber-700 bg-opacity-55 px-2 py-1 text-amber-50 border border-amber-200/25 hover:bg-opacity-85"
                 aria-label="Set Pomodoro short break"
                 onClick={() => choosePomodoroSession('shortBreak')}
               >
                 Break
               </button>
               <button
-                className="rounded bg-purple-600 bg-opacity-60 px-2 py-1 hover:bg-opacity-90"
+                className="rounded bg-red-700 bg-opacity-55 px-2 py-1 text-red-50 border border-red-200/25 hover:bg-opacity-85"
                 aria-label="Set Pomodoro long break"
                 onClick={() => choosePomodoroSession('longBreak')}
               >
                 Long
               </button>
               <button
-                className="rounded bg-black bg-opacity-30 px-2 py-1 hover:text-blue-300"
+                className="rounded bg-red-950 bg-opacity-45 px-2 py-1 text-red-50 border border-red-300/20 hover:bg-red-700 disabled:opacity-45"
                 aria-label="Advance Pomodoro session"
                 disabled={!isPomodoroMode}
                 onClick={advancePomodoroSession}
@@ -297,7 +301,7 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
                 Next
               </button>
             </div>
-            <label className="mt-2 flex cursor-pointer items-center justify-center gap-2 text-xs text-stone-300">
+            <label className="mt-2 flex cursor-pointer items-center justify-center gap-2 text-xs text-red-100">
               <input
                 type="checkbox"
                 checked={autoQueuePomodoro}
@@ -306,7 +310,7 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
               Queue next session when timer ends
             </label>
             {isPomodoroMode ? (
-              <p className="mt-1 text-center text-xs text-stone-400">
+              <p className="mt-1 text-center text-xs text-red-200">
                 Completed focus blocks: {completedFocusSessions}
               </p>
             ) : null}
@@ -315,14 +319,14 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
             id="timer-buttons"
             className={
               !isOverlay
-                ? 'text-stone-500 flex justify-center bg-black bg-opacity-10 rounded-xl'
+                ? 'text-red-100 flex justify-center bg-red-900 bg-opacity-35 rounded-xl border border-red-400/20'
                 : 'hidden'
             }
           >
             {isActive ? (
               <>
                 <button
-                  className="pause text-5xl text-yellow-500 m-2"
+                  className="pause text-5xl text-amber-200 m-2 drop-shadow-[0_0_8px_rgba(253,230,138,0.45)]"
                   title="pause"
                   aria-label="Pause timer"
                   onClick={pauseTimer}
@@ -330,7 +334,7 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
                   ⏸
                 </button>
                 <button
-                  className="stop text-5xl text-red-500 m-2"
+                  className="stop text-5xl text-red-300 m-2 drop-shadow-[0_0_8px_rgba(252,165,165,0.55)]"
                   title="stop"
                   aria-label="Stop timer"
                   onClick={stopTimer}
@@ -341,7 +345,7 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
             ) : (
               <>
                 <button
-                  className="start text-5xl text-green-500 m-2 disabled:opacity-40"
+                  className="start text-5xl text-lime-200 m-2 disabled:opacity-40 drop-shadow-[0_0_8px_rgba(217,249,157,0.45)]"
                   title="start"
                   aria-label="Start timer"
                   disabled={remainingSeconds <= 0 && durationSeconds <= 0}
@@ -350,7 +354,7 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
                   ▶
                 </button>
                 <button
-                  className="edit text-5xl text-yellow-500 m-2"
+                  className="edit text-5xl text-amber-200 m-2 drop-shadow-[0_0_8px_rgba(253,230,138,0.45)]"
                   title="edit"
                   aria-label="Edit timer"
                   onClick={openEditor}
@@ -359,7 +363,7 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
                 </button>
                 {durationSeconds > 0 && remainingSeconds !== durationSeconds ? (
                   <button
-                    className="reset text-5xl text-blue-400 m-2"
+                    className="reset text-5xl text-red-200 m-2 drop-shadow-[0_0_8px_rgba(254,202,202,0.45)]"
                     title="reset"
                     aria-label="Reset timer"
                     onClick={resetTimer}

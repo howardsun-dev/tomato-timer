@@ -30,12 +30,12 @@ export default function InputField({
 
   return (
     <div className="text-3xl">
-      <label className="text-stone-200" htmlFor={inputId}>
+      <label className="text-red-50" htmlFor={inputId}>
         {label}
       </label>
       <input
         id={inputId}
-        className="w-20 bg-transparent text-blue-400"
+        className="w-20 bg-transparent text-red-100 placeholder:text-red-200 focus:outline-none focus:ring-1 focus:ring-red-300 rounded"
         inputMode="numeric"
         min={0}
         max={max}
