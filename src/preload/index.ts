@@ -1,22 +1,28 @@
-import { contextBridge } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
+import { contextBridge, ipcRenderer } from 'electron'
 
-// Custom APIs for renderer
-const api = {}
+const timerApi = {
+  closeWindow: (): void => ipcRenderer.send('close-window'),
+  minimizeWindow: (): void => ipcRenderer.send('minimize-window'),
+  onOverlayMode: (callback: (isOverlayOn: boolean) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, isOverlayOn: boolean): void => {
+      callback(isOverlayOn)
+    }
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
+    ipcRenderer.on('overlay-mode', listener)
+
+    return () => {
+      ipcRenderer.removeListener('overlay-mode', listener)
+    }
+  }
+}
+
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('timerApi', timerApi)
   } catch (error) {
     console.error(error)
   }
 } else {
-  // @ts-ignore (define in dts)
-  window.electron = electronAPI
-  // @ts-ignore (define in dts)
-  window.api = api
+  // @ts-ignore - fallback for non-isolated development contexts
+  window.timerApi = timerApi
 }

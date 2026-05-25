@@ -1,88 +1,196 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import InputField from './InputField'
 import AlarmSound from '../assets/sounds/alarm_sound.mp3'
+import {
+  clampTimePart,
+  computeRemainingMilliseconds,
+  formatSeconds,
+  normalizeTimeParts,
+  secondsToTimeParts,
+  type TimeParts
+} from '../utils/time'
 
 interface TimerProps {
   isOverlay: boolean
 }
 
+const DEFAULT_PRESETS = [5, 10, 15, 25, 45, 60]
+
 export default function Timer({ isOverlay }: TimerProps): JSX.Element {
-  const [isEditing, setIsEditing] = useState<boolean>(false)
-  const [minutes, setMinutes] = useState<number>(0)
-  const [seconds, setSeconds] = useState<number>(0)
-  const [hours, setHours] = useState<number>(0)
-  const [isActive, setIsActive] = useState<boolean>(false)
-  const audio = new Audio(AlarmSound)
+  const [isEditing, setIsEditing] = useState(false)
+  const [durationSeconds, setDurationSeconds] = useState(0)
+  const [remainingSeconds, setRemainingSeconds] = useState(0)
+  const [draftTime, setDraftTime] = useState<TimeParts>({ hours: 0, minutes: 0, seconds: 0 })
+  const [isActive, setIsActive] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const endAtRef = useRef<number | null>(null)
+  const remainingMillisecondsRef = useRef(0)
 
   useEffect(() => {
-    let intervalId
+    audioRef.current = new Audio(AlarmSound)
 
-    if (isActive) {
-      intervalId = setInterval(() => {
-        if (seconds > 0) {
-          setSeconds(seconds - 1)
-        } else if (minutes > 0) {
-          setMinutes(minutes - 1)
-          setSeconds(59)
-        } else if (hours > 0) {
-          setHours(hours - 1)
-          setMinutes(59)
-          setSeconds(59)
-        } else {
-          // Play Audio Alarm
-          audio.play()
-          clearInterval(intervalId)
-          setIsActive(false)
-        }
-      }, 1000)
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+        audioRef.current = null
+      }
     }
-    return () => clearInterval(intervalId)
-  }, [isActive, hours, minutes, seconds])
+  }, [])
+
+  useEffect(() => {
+    if (!isActive || endAtRef.current === null) {
+      return undefined
+    }
+
+    const tick = (): void => {
+      if (endAtRef.current === null) {
+        return
+      }
+
+      const nextRemainingMilliseconds = computeRemainingMilliseconds(endAtRef.current)
+      const nextRemainingSeconds = Math.ceil(nextRemainingMilliseconds / 1000)
+      remainingMillisecondsRef.current = nextRemainingMilliseconds
+      setRemainingSeconds(nextRemainingSeconds)
+
+      if (nextRemainingSeconds === 0) {
+        setIsActive(false)
+        endAtRef.current = null
+        void audioRef.current?.play().catch((error) => {
+          console.error('Failed to play timer alarm', error)
+        })
+      }
+    }
+
+    tick()
+    const intervalId = window.setInterval(tick, 250)
+
+    return () => window.clearInterval(intervalId)
+  }, [isActive])
+
+  const updateDraftTime = (part: keyof TimeParts, value: number): void => {
+    setDraftTime((currentDraft) => ({
+      ...currentDraft,
+      [part]: clampTimePart(value, part)
+    }))
+  }
+
+  const openEditor = (): void => {
+    setDraftTime(secondsToTimeParts(durationSeconds || remainingSeconds))
+    setIsEditing(true)
+  }
+
+  const saveDuration = (): void => {
+    const nextDurationSeconds = normalizeTimeParts(draftTime)
+    setDurationSeconds(nextDurationSeconds)
+    setRemainingSeconds(nextDurationSeconds)
+    remainingMillisecondsRef.current = nextDurationSeconds * 1000
+    setIsActive(false)
+    endAtRef.current = null
+    setIsEditing(false)
+  }
+
+  const setPreset = (minutes: number): void => {
+    const nextDurationSeconds = minutes * 60
+    setDurationSeconds(nextDurationSeconds)
+    setRemainingSeconds(nextDurationSeconds)
+    remainingMillisecondsRef.current = nextDurationSeconds * 1000
+    setIsActive(false)
+    endAtRef.current = null
+  }
+
+  const startTimer = (): void => {
+    const millisecondsToRun =
+      remainingMillisecondsRef.current || (remainingSeconds || durationSeconds) * 1000
+
+    if (millisecondsToRun <= 0) {
+      return
+    }
+
+    audioRef.current?.pause()
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0
+    }
+
+    endAtRef.current = Date.now() + millisecondsToRun
+    remainingMillisecondsRef.current = millisecondsToRun
+    setRemainingSeconds(Math.ceil(millisecondsToRun / 1000))
+    setIsActive(true)
+  }
+
+  const pauseTimer = (): void => {
+    if (endAtRef.current !== null) {
+      const nextRemainingMilliseconds = computeRemainingMilliseconds(endAtRef.current)
+      remainingMillisecondsRef.current = nextRemainingMilliseconds
+      setRemainingSeconds(Math.ceil(nextRemainingMilliseconds / 1000))
+    }
+
+    endAtRef.current = null
+    setIsActive(false)
+  }
+
+  const resetTimer = (): void => {
+    endAtRef.current = null
+    setIsActive(false)
+    setRemainingSeconds(durationSeconds)
+    remainingMillisecondsRef.current = durationSeconds * 1000
+  }
+
+  const stopTimer = (): void => {
+    endAtRef.current = null
+    setIsActive(false)
+    setDurationSeconds(0)
+    setRemainingSeconds(0)
+    remainingMillisecondsRef.current = 0
+  }
 
   return (
     <>
       {isEditing ? (
-        // Time Setup
         <div className="flex justify-center text-stone-200">
           <div>
             <InputField
-              label={'Hours: '}
-              value={hours}
-              onChange={(e) => setHours(parseInt(e.target.value))}
+              label="Hours: "
+              value={draftTime.hours}
+              onValueChange={(value) => updateDraftTime('hours', value)}
             />
             <InputField
-              label={'Minutes: '}
-              value={minutes}
-              onChange={(e) => setMinutes(parseInt(e.target.value))}
+              label="Minutes: "
+              value={draftTime.minutes}
+              max={59}
+              onValueChange={(value) => updateDraftTime('minutes', value)}
             />
             <InputField
-              label={'Seconds: '}
-              value={seconds}
-              onChange={(e) => setSeconds(parseInt(e.target.value))}
+              label="Seconds: "
+              value={draftTime.seconds}
+              max={59}
+              onValueChange={(value) => updateDraftTime('seconds', value)}
             />
             <button
               className="bg-blue-500 text-stone-200 px-20 py-1 rounded-xl text-xl mt-1 ml-1"
               title="save"
-              onClick={() => setIsEditing(false)}
+              aria-label="Save timer duration"
+              onClick={saveDuration}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-6 h-6"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-              </svg>
+              ✓
             </button>
           </div>
         </div>
       ) : (
-        //Render Timer
         <div>
           <div className="flex justify-center">
-            <h1 className="text-green-500 text-6xl">{`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`}</h1>
+            <h1 className="text-green-500 text-6xl">{formatSeconds(remainingSeconds)}</h1>
+          </div>
+          <div className={!isOverlay ? 'flex justify-center gap-1 my-1' : 'hidden'}>
+            {DEFAULT_PRESETS.map((presetMinutes) => (
+              <button
+                key={presetMinutes}
+                className="rounded bg-black bg-opacity-20 px-2 py-1 text-xs text-stone-200 hover:text-blue-300"
+                onClick={() => setPreset(presetMinutes)}
+              >
+                {presetMinutes < 60 ? `${presetMinutes}m` : '1h'}
+              </button>
+            ))}
           </div>
           <div
             id="timer-buttons"
@@ -97,91 +205,49 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
                 <button
                   className="pause text-5xl text-yellow-500 m-2"
                   title="pause"
-                  onClick={() => setIsActive(false)}
+                  aria-label="Pause timer"
+                  onClick={pauseTimer}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-6 h-6"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M15.75 5.25v13.5m-7.5-13.5v13.5"
-                    />
-                  </svg>
+                  ⏸
                 </button>
                 <button
                   className="stop text-5xl text-red-500 m-2"
                   title="stop"
-                  onClick={() => {
-                    setIsActive(false)
-                    setHours(0)
-                    setMinutes(0)
-                    setSeconds(0)
-                  }}
+                  aria-label="Stop timer"
+                  onClick={stopTimer}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-6 h-6"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5.25 7.5A2.25 2.25 0 0 1 7.5 5.25h9a2.25 2.25 0 0 1 2.25 2.25v9a2.25 2.25 0 0 1-2.25 2.25h-9a2.25 2.25 0 0 1-2.25-2.25v-9Z"
-                    />
-                  </svg>
+                  ⏹
                 </button>
               </>
             ) : (
               <>
                 <button
-                  className="start text-5xl text-green-500 m-2"
+                  className="start text-5xl text-green-500 m-2 disabled:opacity-40"
                   title="start"
-                  onClick={() => setIsActive(true)}
+                  aria-label="Start timer"
+                  disabled={remainingSeconds <= 0 && durationSeconds <= 0}
+                  onClick={startTimer}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-6 h-6"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"
-                    />
-                  </svg>
+                  ▶
                 </button>
                 <button
                   className="edit text-5xl text-yellow-500 m-2"
                   title="edit"
-                  onClick={() => setIsEditing(true)}
+                  aria-label="Edit timer"
+                  onClick={openEditor}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-6 h-6"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125"
-                    />
-                  </svg>
+                  ✎
                 </button>
+                {durationSeconds > 0 && remainingSeconds !== durationSeconds ? (
+                  <button
+                    className="reset text-5xl text-blue-400 m-2"
+                    title="reset"
+                    aria-label="Reset timer"
+                    onClick={resetTimer}
+                  >
+                    ↺
+                  </button>
+                ) : null}
               </>
             )}
           </div>
