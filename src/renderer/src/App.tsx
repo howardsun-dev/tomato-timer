@@ -19,8 +19,8 @@ function App(): JSX.Element {
       <div
         className={
           !isOverlay
-            ? 'bg-black bg-opacity-40 p-2 rounded-b-xl'
-            : 'bg-black bg-opacity-40 p-2 rounded-xl'
+            ? 'bg-red-950 bg-opacity-55 p-2 rounded-b-xl border-x border-b border-red-400/30 shadow-lg shadow-red-950/30'
+            : 'bg-red-950 bg-opacity-55 p-2 rounded-xl border border-red-400/30 shadow-lg shadow-red-950/30'
         }
       >
         <Timer isOverlay={isOverlay} />
