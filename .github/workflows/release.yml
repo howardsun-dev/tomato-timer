@@ -100,7 +100,7 @@ jobs:
         run: npx electron-vite build
 
       - name: Package installer
-        run: npx electron-builder --${{ matrix.platform.electron-builder-target }}
+        run: npx electron-builder --${{ matrix.platform.electron-builder-target }} --publish never
 
       - name: Upload installer artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
