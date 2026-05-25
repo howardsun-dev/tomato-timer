@@ -52,6 +52,6 @@ npm run build:linux
 
 ### Automated releases
 
-Merging to `main` runs the Release workflow, which packages Windows, macOS, and Linux installers and publishes them to a GitHub Release named from the package version and commit SHA, for example `v1.0.0-abc1234`.
+Merging to `main` runs the Release workflow, which packages Windows, macOS, and Linux installers and publishes them to a GitHub Release. The workflow sets the release `tag_name` to `v${version}-${short_sha}`, for example `v1.0.0-abc1234`.
 
 The workflow can also be started manually from GitHub Actions with `workflow_dispatch`. macOS release artifacts are unsigned and not notarized, so Gatekeeper may warn on first launch.

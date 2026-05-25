@@ -14,41 +14,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  package:
-    name: Package ${{ matrix.platform.name }}
-    runs-on: ${{ matrix.platform.runner }}
+  ci:
+    name: Verify release source
+    runs-on: ubuntu-latest
     permissions:
       contents: read
-
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - name: Windows
-            runner: windows-latest
-            build-script: build:win
-            artifact-name: windows
-            artifact-path: |
-              dist/*.exe
-              dist/*.exe.blockmap
-              dist/latest.yml
-          - name: macOS
-            runner: macos-latest
-            build-script: build:mac
-            artifact-name: macos
-            artifact-path: |
-              dist/*.dmg
-              dist/*.zip
-              dist/*.blockmap
-              dist/latest-mac.yml
-          - name: Linux
-            runner: ubuntu-latest
-            build-script: build:linux
-            artifact-name: linux
-            artifact-path: |
-              dist/*.AppImage
-              dist/*.deb
-              dist/latest-linux.yml
 
     steps:
       - name: Checkout
@@ -74,8 +44,63 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+  package:
+    name: Package ${{ matrix.platform.name }}
+    runs-on: ${{ matrix.platform.runner }}
+    needs: ci
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: Windows
+            runner: windows-latest
+            electron-builder-target: win
+            artifact-name: windows
+            artifact-path: |
+              dist/*.exe
+              dist/*.exe.blockmap
+              dist/latest.yml
+          - name: macOS
+            runner: macos-latest
+            electron-builder-target: mac
+            artifact-name: macos
+            artifact-path: |
+              dist/*.dmg
+              dist/*.zip
+              dist/*.blockmap
+              dist/latest-mac.yml
+          - name: Linux
+            runner: ubuntu-latest
+            electron-builder-target: linux
+            artifact-name: linux
+            artifact-path: |
+              dist/*.AppImage
+              dist/*.deb
+              dist/latest-linux.yml
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npx electron-vite build
+
       - name: Package installer
-        run: npm run ${{ matrix.platform.build-script }}
+        run: npx electron-builder --${{ matrix.platform.electron-builder-target }}
 
       - name: Upload installer artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -126,19 +151,26 @@ jobs:
           find release-artifacts -maxdepth 1 -type f -printf '%f\n' | sort
 
       - name: Create release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
-        with:
-          tag_name: ${{ steps.metadata.outputs.tag }}
-          name: ${{ steps.metadata.outputs.name }}
-          target_commitish: ${{ github.sha }}
-          make_latest: true
-          fail_on_unmatched_files: true
-          generate_release_notes: true
-          body: |
-            Automated desktop release for `${{ github.sha }}`.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
+          RELEASE_NAME: ${{ steps.metadata.outputs.name }}
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find release-artifacts -maxdepth 1 -type f | sort)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No release artifacts found" >&2
+            exit 1
+          fi
 
-            Built installers for Windows, macOS, and Linux after changes landed on `main`.
+          gh release create "$RELEASE_TAG" "${files[@]}" \
+            --title "$RELEASE_NAME" \
+            --target "$GITHUB_SHA" \
+            --latest \
+            --generate-notes \
+            --notes "Automated desktop release for \`$GITHUB_SHA\`.
 
-            macOS builds are unsigned and not notarized, so Gatekeeper may warn on first launch.
-          files: |
-            release-artifacts/*
+          Built installers for Windows, macOS, and Linux after changes landed on \`main\`.
+
+          macOS builds are unsigned and not notarized, so Gatekeeper may warn on first launch."
