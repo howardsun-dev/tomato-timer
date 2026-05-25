@@ -26,6 +26,10 @@ export const POMODORO_PRESETS: Record<PomodoroSession, TimerPreset> = {
   longBreak: { label: 'Long break', minutes: 15 }
 }
 
+/**
+ * Returns the next Pomodoro session after the current session completes.
+ * Every fourth completed focus block is followed by a long break.
+ */
 export function getNextPomodoroSession(
   currentSession: PomodoroSession,
   completedFocusSessions: number
@@ -37,10 +41,12 @@ export function getNextPomodoroSession(
   return (completedFocusSessions + 1) % 4 === 0 ? 'longBreak' : 'shortBreak'
 }
 
+/** Returns the timer preset configuration for a Pomodoro session type. */
 export function getPomodoroSessionPreset(session: PomodoroSession): TimerPreset {
   return POMODORO_PRESETS[session]
 }
 
+/** Returns the display label for the current Pomodoro session. */
 export function getPomodoroSessionLabel(
   session: PomodoroSession,
   completedFocusSessions: number
