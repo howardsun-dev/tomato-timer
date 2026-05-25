@@ -3,7 +3,7 @@ import InputField from './InputField'
 import AlarmSound from '../assets/sounds/alarm_sound.mp3'
 import {
   clampTimePart,
-  computeRemainingSeconds,
+  computeRemainingMilliseconds,
   formatSeconds,
   normalizeTimeParts,
   secondsToTimeParts,
@@ -24,9 +24,18 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
   const [isActive, setIsActive] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const endAtRef = useRef<number | null>(null)
+  const remainingMillisecondsRef = useRef(0)
 
   useEffect(() => {
     audioRef.current = new Audio(AlarmSound)
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+        audioRef.current = null
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -39,7 +48,9 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
         return
       }
 
-      const nextRemainingSeconds = computeRemainingSeconds(endAtRef.current)
+      const nextRemainingMilliseconds = computeRemainingMilliseconds(endAtRef.current)
+      const nextRemainingSeconds = Math.ceil(nextRemainingMilliseconds / 1000)
+      remainingMillisecondsRef.current = nextRemainingMilliseconds
       setRemainingSeconds(nextRemainingSeconds)
 
       if (nextRemainingSeconds === 0) {
@@ -73,6 +84,7 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
     const nextDurationSeconds = normalizeTimeParts(draftTime)
     setDurationSeconds(nextDurationSeconds)
     setRemainingSeconds(nextDurationSeconds)
+    remainingMillisecondsRef.current = nextDurationSeconds * 1000
     setIsActive(false)
     endAtRef.current = null
     setIsEditing(false)
@@ -82,14 +94,16 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
     const nextDurationSeconds = minutes * 60
     setDurationSeconds(nextDurationSeconds)
     setRemainingSeconds(nextDurationSeconds)
+    remainingMillisecondsRef.current = nextDurationSeconds * 1000
     setIsActive(false)
     endAtRef.current = null
   }
 
   const startTimer = (): void => {
-    const secondsToRun = remainingSeconds || durationSeconds
+    const millisecondsToRun =
+      remainingMillisecondsRef.current || (remainingSeconds || durationSeconds) * 1000
 
-    if (secondsToRun <= 0) {
+    if (millisecondsToRun <= 0) {
       return
     }
 
@@ -98,14 +112,17 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
       audioRef.current.currentTime = 0
     }
 
-    endAtRef.current = Date.now() + secondsToRun * 1000
-    setRemainingSeconds(secondsToRun)
+    endAtRef.current = Date.now() + millisecondsToRun
+    remainingMillisecondsRef.current = millisecondsToRun
+    setRemainingSeconds(Math.ceil(millisecondsToRun / 1000))
     setIsActive(true)
   }
 
   const pauseTimer = (): void => {
     if (endAtRef.current !== null) {
-      setRemainingSeconds(computeRemainingSeconds(endAtRef.current))
+      const nextRemainingMilliseconds = computeRemainingMilliseconds(endAtRef.current)
+      remainingMillisecondsRef.current = nextRemainingMilliseconds
+      setRemainingSeconds(Math.ceil(nextRemainingMilliseconds / 1000))
     }
 
     endAtRef.current = null
@@ -116,6 +133,7 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
     endAtRef.current = null
     setIsActive(false)
     setRemainingSeconds(durationSeconds)
+    remainingMillisecondsRef.current = durationSeconds * 1000
   }
 
   const stopTimer = (): void => {
@@ -123,6 +141,7 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
     setIsActive(false)
     setDurationSeconds(0)
     setRemainingSeconds(0)
+    remainingMillisecondsRef.current = 0
   }
 
   return (
@@ -186,11 +205,17 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
                 <button
                   className="pause text-5xl text-yellow-500 m-2"
                   title="pause"
+                  aria-label="Pause timer"
                   onClick={pauseTimer}
                 >
                   ⏸
                 </button>
-                <button className="stop text-5xl text-red-500 m-2" title="stop" onClick={stopTimer}>
+                <button
+                  className="stop text-5xl text-red-500 m-2"
+                  title="stop"
+                  aria-label="Stop timer"
+                  onClick={stopTimer}
+                >
                   ⏹
                 </button>
               </>
@@ -199,6 +224,7 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
                 <button
                   className="start text-5xl text-green-500 m-2 disabled:opacity-40"
                   title="start"
+                  aria-label="Start timer"
                   disabled={remainingSeconds <= 0 && durationSeconds <= 0}
                   onClick={startTimer}
                 >
@@ -207,6 +233,7 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
                 <button
                   className="edit text-5xl text-yellow-500 m-2"
                   title="edit"
+                  aria-label="Edit timer"
                   onClick={openEditor}
                 >
                   ✎
@@ -215,6 +242,7 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
                   <button
                     className="reset text-5xl text-blue-400 m-2"
                     title="reset"
+                    aria-label="Reset timer"
                     onClick={resetTimer}
                   >
                     ↺

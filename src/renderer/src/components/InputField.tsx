@@ -1,3 +1,5 @@
+import { useId, type ChangeEvent } from 'react'
+
 interface InputFieldProps {
   label: string
   value: number
@@ -11,7 +13,9 @@ export default function InputField({
   max,
   onValueChange
 }: InputFieldProps): JSX.Element {
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+  const inputId = useId()
+
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>): void => {
     const inputValue = event.target.value
 
     if (inputValue !== '' && !/^\d+$/.test(inputValue)) {
@@ -26,8 +30,11 @@ export default function InputField({
 
   return (
     <div className="text-3xl">
-      <label className="text-stone-200">{label}</label>
+      <label className="text-stone-200" htmlFor={inputId}>
+        {label}
+      </label>
       <input
+        id={inputId}
         className="w-20 bg-transparent text-blue-400"
         inputMode="numeric"
         min={0}

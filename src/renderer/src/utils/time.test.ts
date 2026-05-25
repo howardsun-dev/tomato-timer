@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { clampTimePart, computeRemainingSeconds, formatSeconds, normalizeTimeParts } from './time'
+import {
+  clampTimePart,
+  computeRemainingMilliseconds,
+  computeRemainingSeconds,
+  formatSeconds,
+  normalizeTimeParts
+} from './time'
 
 describe('timer time utilities', () => {
   it('formats total seconds as HH:MM:SS', () => {
@@ -23,5 +29,10 @@ describe('timer time utilities', () => {
   it('computes remaining seconds from an absolute end timestamp', () => {
     expect(computeRemainingSeconds(10_000, 6_200)).toBe(4)
     expect(computeRemainingSeconds(10_000, 10_001)).toBe(0)
+  })
+
+  it('computes remaining milliseconds without rounding away pause state', () => {
+    expect(computeRemainingMilliseconds(10_000, 6_250)).toBe(3750)
+    expect(computeRemainingMilliseconds(10_000, 10_001)).toBe(0)
   })
 })

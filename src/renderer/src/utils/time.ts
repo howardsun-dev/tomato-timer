@@ -35,7 +35,11 @@ export function secondsToTimeParts(totalSeconds: number): TimeParts {
 }
 
 export function computeRemainingSeconds(endAt: number, now: number = Date.now()): number {
-  return Math.max(0, Math.ceil((endAt - now) / 1000))
+  return Math.ceil(computeRemainingMilliseconds(endAt, now) / 1000)
+}
+
+export function computeRemainingMilliseconds(endAt: number, now: number = Date.now()): number {
+  return Math.max(0, endAt - now)
 }
 
 export function formatSeconds(totalSeconds: number): string {
