@@ -1,6 +1,6 @@
 {
   "name": "electron-timer-app",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A compact always-on-top desktop timer with overlay mode",
   "main": "./out/main/index.js",
   "author": "Howard Sun",
