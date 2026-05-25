@@ -9,12 +9,18 @@ import {
   secondsToTimeParts,
   type TimeParts
 } from '../utils/time'
+import {
+  DEFAULT_TIMER_PRESETS,
+  getNextPomodoroSession,
+  getPomodoroSessionLabel,
+  getPomodoroSessionPreset,
+  type PomodoroSession,
+  type TimerPreset
+} from '../utils/presets'
 
 interface TimerProps {
   isOverlay: boolean
 }
-
-const DEFAULT_PRESETS = [5, 10, 15, 25, 45, 60]
 
 export default function Timer({ isOverlay }: TimerProps): JSX.Element {
   const [isEditing, setIsEditing] = useState(false)
@@ -22,6 +28,10 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
   const [remainingSeconds, setRemainingSeconds] = useState(0)
   const [draftTime, setDraftTime] = useState<TimeParts>({ hours: 0, minutes: 0, seconds: 0 })
   const [isActive, setIsActive] = useState(false)
+  const [isPomodoroMode, setIsPomodoroMode] = useState(false)
+  const [pomodoroSession, setPomodoroSession] = useState<PomodoroSession>('focus')
+  const [completedFocusSessions, setCompletedFocusSessions] = useState(0)
+  const [autoQueuePomodoro, setAutoQueuePomodoro] = useState(true)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const endAtRef = useRef<number | null>(null)
   const remainingMillisecondsRef = useRef(0)
@@ -56,9 +66,23 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
       if (nextRemainingSeconds === 0) {
         setIsActive(false)
         endAtRef.current = null
+        remainingMillisecondsRef.current = 0
         void audioRef.current?.play().catch((error) => {
           console.error('Failed to play timer alarm', error)
         })
+
+        if (isPomodoroMode && autoQueuePomodoro) {
+          const nextCompletedFocusSessions =
+            pomodoroSession === 'focus' ? completedFocusSessions + 1 : completedFocusSessions
+          const nextSession = getNextPomodoroSession(pomodoroSession, completedFocusSessions)
+          const nextPreset = getPomodoroSessionPreset(nextSession)
+
+          setCompletedFocusSessions(nextCompletedFocusSessions)
+          setPomodoroSession(nextSession)
+          setDurationSeconds(nextPreset.minutes * 60)
+          setRemainingSeconds(nextPreset.minutes * 60)
+          remainingMillisecondsRef.current = nextPreset.minutes * 60 * 1000
+        }
       }
     }
 
@@ -66,7 +90,21 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
     const intervalId = window.setInterval(tick, 250)
 
     return () => window.clearInterval(intervalId)
-  }, [isActive])
+  }, [autoQueuePomodoro, completedFocusSessions, isActive, isPomodoroMode, pomodoroSession])
+
+  const setTimerDuration = (nextDurationSeconds: number): void => {
+    setDurationSeconds(nextDurationSeconds)
+    setRemainingSeconds(nextDurationSeconds)
+    remainingMillisecondsRef.current = nextDurationSeconds * 1000
+    setIsActive(false)
+    endAtRef.current = null
+  }
+
+  const applyPomodoroSession = (session: PomodoroSession): void => {
+    const preset = getPomodoroSessionPreset(session)
+    setPomodoroSession(session)
+    setTimerDuration(preset.minutes * 60)
+  }
 
   const updateDraftTime = (part: keyof TimeParts, value: number): void => {
     setDraftTime((currentDraft) => ({
@@ -82,21 +120,33 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
 
   const saveDuration = (): void => {
     const nextDurationSeconds = normalizeTimeParts(draftTime)
-    setDurationSeconds(nextDurationSeconds)
-    setRemainingSeconds(nextDurationSeconds)
-    remainingMillisecondsRef.current = nextDurationSeconds * 1000
-    setIsActive(false)
-    endAtRef.current = null
+    setTimerDuration(nextDurationSeconds)
+    setIsPomodoroMode(false)
     setIsEditing(false)
   }
 
-  const setPreset = (minutes: number): void => {
-    const nextDurationSeconds = minutes * 60
-    setDurationSeconds(nextDurationSeconds)
-    setRemainingSeconds(nextDurationSeconds)
-    remainingMillisecondsRef.current = nextDurationSeconds * 1000
-    setIsActive(false)
-    endAtRef.current = null
+  const setPreset = (preset: TimerPreset): void => {
+    setIsPomodoroMode(false)
+    setTimerDuration(preset.minutes * 60)
+  }
+
+  const startPomodoro = (): void => {
+    setIsPomodoroMode(true)
+    setCompletedFocusSessions(0)
+    applyPomodoroSession('focus')
+  }
+
+  const choosePomodoroSession = (session: PomodoroSession): void => {
+    setIsPomodoroMode(true)
+    applyPomodoroSession(session)
+  }
+
+  const advancePomodoroSession = (): void => {
+    const nextSession = getNextPomodoroSession(pomodoroSession, completedFocusSessions)
+    if (pomodoroSession === 'focus') {
+      setCompletedFocusSessions((currentCompleted) => currentCompleted + 1)
+    }
+    applyPomodoroSession(nextSession)
   }
 
   const startTimer = (): void => {
@@ -141,6 +191,9 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
     setIsActive(false)
     setDurationSeconds(0)
     setRemainingSeconds(0)
+    setIsPomodoroMode(false)
+    setPomodoroSession('focus')
+    setCompletedFocusSessions(0)
     remainingMillisecondsRef.current = 0
   }
 
@@ -181,16 +234,82 @@ export default function Timer({ isOverlay }: TimerProps): JSX.Element {
           <div className="flex justify-center">
             <h1 className="text-green-500 text-6xl">{formatSeconds(remainingSeconds)}</h1>
           </div>
-          <div className={!isOverlay ? 'flex justify-center gap-1 my-1' : 'hidden'}>
-            {DEFAULT_PRESETS.map((presetMinutes) => (
+          <div className={!isOverlay ? 'mt-1 flex flex-wrap justify-center gap-1' : 'hidden'}>
+            {DEFAULT_TIMER_PRESETS.map((preset) => (
               <button
-                key={presetMinutes}
+                key={preset.label}
                 className="rounded bg-black bg-opacity-20 px-2 py-1 text-xs text-stone-200 hover:text-blue-300"
-                onClick={() => setPreset(presetMinutes)}
+                title={preset.description}
+                aria-label={`Set ${preset.label} timer`}
+                onClick={() => setPreset(preset)}
               >
-                {presetMinutes < 60 ? `${presetMinutes}m` : '1h'}
+                {preset.label}
               </button>
             ))}
+          </div>
+          <div
+            className={
+              !isOverlay ? 'my-2 rounded-lg bg-black bg-opacity-20 p-2 text-stone-200' : 'hidden'
+            }
+          >
+            <div className="mb-2 flex items-center justify-between gap-2 text-xs">
+              <span className="font-semibold text-blue-200">
+                {isPomodoroMode
+                  ? `Pomodoro · ${getPomodoroSessionLabel(pomodoroSession, completedFocusSessions)}`
+                  : 'Pomodoro'}
+              </span>
+              <button
+                className="rounded bg-blue-500 bg-opacity-70 px-2 py-1 text-stone-100 hover:bg-opacity-90"
+                aria-label="Start Pomodoro mode"
+                onClick={startPomodoro}
+              >
+                25/5
+              </button>
+            </div>
+            <div className="flex flex-wrap justify-center gap-1 text-xs">
+              <button
+                className="rounded bg-green-600 bg-opacity-60 px-2 py-1 hover:bg-opacity-90"
+                aria-label="Set Pomodoro focus session"
+                onClick={() => choosePomodoroSession('focus')}
+              >
+                Focus
+              </button>
+              <button
+                className="rounded bg-yellow-600 bg-opacity-60 px-2 py-1 hover:bg-opacity-90"
+                aria-label="Set Pomodoro short break"
+                onClick={() => choosePomodoroSession('shortBreak')}
+              >
+                Break
+              </button>
+              <button
+                className="rounded bg-purple-600 bg-opacity-60 px-2 py-1 hover:bg-opacity-90"
+                aria-label="Set Pomodoro long break"
+                onClick={() => choosePomodoroSession('longBreak')}
+              >
+                Long
+              </button>
+              <button
+                className="rounded bg-black bg-opacity-30 px-2 py-1 hover:text-blue-300"
+                aria-label="Advance Pomodoro session"
+                disabled={!isPomodoroMode}
+                onClick={advancePomodoroSession}
+              >
+                Next
+              </button>
+            </div>
+            <label className="mt-2 flex cursor-pointer items-center justify-center gap-2 text-xs text-stone-300">
+              <input
+                type="checkbox"
+                checked={autoQueuePomodoro}
+                onChange={(event) => setAutoQueuePomodoro(event.currentTarget.checked)}
+              />
+              Queue next session when timer ends
+            </label>
+            {isPomodoroMode ? (
+              <p className="mt-1 text-center text-xs text-stone-400">
+                Completed focus blocks: {completedFocusSessions}
+              </p>
+            ) : null}
           </div>
           <div
             id="timer-buttons"

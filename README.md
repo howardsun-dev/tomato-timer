@@ -1,13 +1,31 @@
 # electron-timer-app
 
-A compact Electron + React timer with an always-on-top transparent overlay.
+A compact Electron + React timer with an always-on-top transparent overlay and built-in Pomodoro support.
 
 Hotkey: `Ctrl/Cmd + 6` toggles overlay click-through mode.
+
+## Screenshots
+
+### Main Window — Presets & Pomodoro
+
+![Main window with timer presets and Pomodoro panel](docs/images/screenshot-main.png)
+
+### Overlay Mode — Always on Top
+
+![Transparent always-on-top overlay](docs/images/screenshot-overlay.png)
+
+### Edit Mode — Set Custom Duration
+
+![Custom duration edit mode](docs/images/screenshot-edit.png)
 
 ## Features
 
 - Countdown timer with hours, minutes, and seconds
-- Quick presets: 5m, 10m, 15m, 25m, 45m, 1h
+- **11 quick presets**: 1m, 3m, 5m, 10m, 15m, 20m, 25m, 30m, 45m, 1h, 90m
+- **Pomodoro mode** with 25/5 focus/break cycles and long break every 4th session
+- Auto-queue next Pomodoro session when timer ends (toggleable)
+- Manual session control: Focus, Short Break, Long Break, Next
+- Completed focus block counter
 - Frameless transparent always-on-top window
 - Click-through overlay mode
 - Alarm sound when the timer completes
