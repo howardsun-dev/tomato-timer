@@ -105,7 +105,7 @@ jobs:
       - name: Upload installer artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: timer-overlay-${{ matrix.platform.artifact-name }}
+          name: tomato-timer-${{ matrix.platform.artifact-name }}
           path: ${{ matrix.platform.artifact-path }}
           if-no-files-found: error
           retention-days: 14
@@ -135,7 +135,7 @@ jobs:
             echo "version=${version}"
             echo "short_sha=${short_sha}"
             echo "tag=${tag}"
-            echo "name=Timer Overlay ${version} (${short_sha})"
+            echo "name=Tomato Timer ${version} (${short_sha})"
           } >> "$GITHUB_OUTPUT"
 
       - name: Download packaged artifacts

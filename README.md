@@ -1,6 +1,6 @@
-# electron-timer-app
+# Tomato Timer
 
-A compact Electron + React timer with an always-on-top transparent overlay and built-in Pomodoro support.
+A compact Electron + React Tomato Timer with an always-on-top transparent overlay and built-in Pomodoro support.
 
 Hotkey: `Ctrl/Cmd + 6` toggles overlay click-through mode.
 

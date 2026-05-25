@@ -1,7 +1,7 @@
 {
-  "name": "electron-timer-app",
+  "name": "tomato-timer",
   "version": "1.1.0",
-  "description": "A compact always-on-top desktop timer with overlay mode",
+  "description": "A compact always-on-top Tomato Timer with overlay mode and Pomodoro presets",
   "main": "./out/main/index.js",
   "author": "Howard Sun",
   "homepage": "https://github.com/howardsun-dev/electron-timer-app",
